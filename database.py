@@ -1,18 +1,74 @@
 import sqlite3
+import os
+import streamlit as st
 from pathlib import Path
-from datetime import datetime, timedelta  
+from datetime import datetime, timedelta
 
+try:
+    import psycopg2
+    from psycopg2.extras import DictCursor
+except ImportError:
+    psycopg2 = None
 
 DB_PATH = Path("data") / "bibliotheque.db"
 
+def get_database_url():
+    """Check Streamlit secrets then environment for DATABASE_URL."""
+    try:
+        if "DATABASE_URL" in st.secrets:
+            return st.secrets["DATABASE_URL"]
+    except Exception:
+        pass
+    return os.environ.get("DATABASE_URL")
+
+DB_URL = get_database_url()
+IS_POSTGRES = DB_URL is not None and DB_URL.startswith("postgres")
+
+class PostgresCursorWrapper:
+    """Wraps psycopg2 cursor to mimic sqlite3 behavior (e.g. ? placeholders)"""
+    def __init__(self, cur):
+        self.cur = cur
+
+    def execute(self, query, vars=None):
+        # Translate SQLite ? to Postgres %s
+        pg_query = query.replace("?", "%s")
+        if vars is None:
+            return self.cur.execute(pg_query)
+        return self.cur.execute(pg_query, vars)
+
+    def fetchall(self):
+        return self.cur.fetchall()
+
+    def fetchone(self):
+        return self.cur.fetchone()
+
+class PostgresConnWrapper:
+    """Wraps psycopg2 connection to provide our custom cursor"""
+    def __init__(self, conn):
+        self.conn = conn
+
+    def cursor(self):
+        return PostgresCursorWrapper(self.conn.cursor())
+
+    def commit(self):
+        self.conn.commit()
+
+    def close(self):
+        self.conn.close()
 
 # --- Connection helper ---
 def get_connection():
     """Create the DB if needed and return a connection."""
-    DB_PATH.parent.mkdir(exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+    if IS_POSTGRES:
+        if psycopg2 is None:
+            raise ImportError("psycopg2-binary is required for PostgreSQL.")
+        conn = psycopg2.connect(DB_URL, cursor_factory=DictCursor)
+        return PostgresConnWrapper(conn)
+    else:
+        DB_PATH.parent.mkdir(exist_ok=True)
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        return conn
 
 
 # --- Initialize DB ---
@@ -20,82 +76,74 @@ def init_db():
     conn = get_connection()
     cur = conn.cursor()
 
-    # Table des livres
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS livres (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            titre TEXT NOT NULL,
-            auteur TEXT,
-            categorie TEXT,
-            proprietaire TEXT,
-            proprietaire_email TEXT,
-            disponibilite TEXT DEFAULT 'Disponible',
-            emprunte_par TEXT,
-            resume TEXT,
-            couverture TEXT,
-            date_ajout TEXT
-        );
-    """)
-
-    # Table historique des emprunts
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS historique (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            id_livre INTEGER NOT NULL,
-            emprunteur TEXT NOT NULL,
-            emprunteur_email TEXT,
-            date_emprunt TEXT NOT NULL,
-            date_retour_prevue TEXT NOT NULL,
-            date_retour TEXT,
-            commentaire TEXT,
-            FOREIGN KEY (id_livre) REFERENCES livres(id)
-        );
-    """)
-
-    conn.commit()
-    conn.close()
-    conn = get_connection()
-    cur = conn.cursor()
-
-    # Table des livres
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS livres (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            titre TEXT NOT NULL,
-            auteur TEXT,
-            categorie TEXT,
-            proprietaire TEXT,
-            disponibilite TEXT DEFAULT 'Disponible',
-            emprunte_par TEXT,
-            resume TEXT,
-            couverture TEXT,
-            date_ajout TEXT
-        );
-    """)
-
-    # Table historique des emprunts
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS historique (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            id_livre INTEGER NOT NULL,
-            emprunteur TEXT NOT NULL,
-            date_emprunt TEXT NOT NULL,
-            date_retour TEXT,
-            commentaire TEXT,
-            FOREIGN KEY (id_livre) REFERENCES livres(id)
-        );
-    """)
+    if IS_POSTGRES:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS livres (
+                id SERIAL PRIMARY KEY,
+                titre TEXT NOT NULL,
+                auteur TEXT,
+                categorie TEXT,
+                proprietaire TEXT,
+                proprietaire_email TEXT,
+                disponibilite TEXT DEFAULT 'Disponible',
+                emprunte_par TEXT,
+                resume TEXT,
+                couverture TEXT,
+                date_ajout TEXT
+            );
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS historique (
+                id SERIAL PRIMARY KEY,
+                id_livre INTEGER NOT NULL REFERENCES livres(id),
+                emprunteur TEXT NOT NULL,
+                emprunteur_email TEXT,
+                date_emprunt TEXT NOT NULL,
+                date_retour_prevue TEXT NOT NULL,
+                date_retour TEXT,
+                commentaire TEXT
+            );
+        """)
+    else:
+        # Table des livres
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS livres (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                titre TEXT NOT NULL,
+                auteur TEXT,
+                categorie TEXT,
+                proprietaire TEXT,
+                proprietaire_email TEXT,
+                disponibilite TEXT DEFAULT 'Disponible',
+                emprunte_par TEXT,
+                resume TEXT,
+                couverture TEXT,
+                date_ajout TEXT
+            );
+        """)
+        # Table historique des emprunts
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS historique (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id_livre INTEGER NOT NULL,
+                emprunteur TEXT NOT NULL,
+                emprunteur_email TEXT,
+                date_emprunt TEXT NOT NULL,
+                date_retour_prevue TEXT NOT NULL,
+                date_retour TEXT,
+                commentaire TEXT,
+                FOREIGN KEY (id_livre) REFERENCES livres(id)
+            );
+        """)
 
     conn.commit()
     conn.close()
 
 
 # --- Add a book ---
-
 def ajouter_livre(titre, auteur, categorie, proprietaire, proprietaire_email, resume, couverture):
     conn = get_connection()
     cur = conn.cursor()
-
     date_ajout = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     cur.execute("""
@@ -147,6 +195,7 @@ def emprunter_livre(id_livre, emprunteur, emprunteur_email, commentaire=""):
     # On renvoie les dates pour les emails
     return date_emprunt_str, date_retour_prevue
      
+
 # --- Rendre un livre ---
 def rendre_livre(id_livre, commentaire=""):
     conn = get_connection()
@@ -187,19 +236,7 @@ def get_historique():
     rows = cur.fetchall()
     conn.close()
     return rows
-    conn = get_connection()
-    cur = conn.cursor()
 
-    cur.execute("""
-        SELECT h.*, l.titre
-        FROM historique h
-        JOIN livres l ON l.id = h.id_livre
-        ORDER BY date_emprunt DESC
-    """)
-
-    rows = cur.fetchall()
-    conn.close()
-    return rows
 
 # --- Récupérer un livre par id ---
 def get_livre(id_livre: int):
@@ -247,6 +284,7 @@ def supprimer_livre(id_livre: int):
     conn.commit()
     conn.close()
 
+
 def archiver_livre(id_livre: int):
     """Marque un livre comme archivé (il n'apparaîtra plus dans l'app)."""
     conn = get_connection()
@@ -265,14 +303,10 @@ def archiver_livre(id_livre: int):
     conn.commit()
     conn.close()
 
+
 def get_dernier_emprunt(id_livre: int):
     """
     Retourne le dernier emprunt d'un livre (ou None s'il n'y en a pas).
-
-    Les infos retournées incluent :
-    - id, id_livre, emprunteur, emprunteur_email
-    - date_emprunt, date_retour_prevue, date_retour, commentaire
-    - titre, proprietaire, proprietaire_email (via la jointure avec livres)
     """
     conn = get_connection()
     cur = conn.cursor()
@@ -292,5 +326,4 @@ def get_dernier_emprunt(id_livre: int):
     if row is None:
         return None
 
-    # On renvoie un dict pour que ce soit plus simple à utiliser dans Streamlit
     return dict(row)
