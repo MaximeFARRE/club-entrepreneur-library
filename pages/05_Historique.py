@@ -1,5 +1,5 @@
 import streamlit as st
-from src.services.emprunt_service import get_tout_historique as get_historique
+from src.services.emprunt_service import get_tout_historique as get_historique, determiner_statut_couleur
 
 st.set_page_config(page_title="Historique des emprunts", page_icon="assets/logo_icone.png",
 )
@@ -57,11 +57,14 @@ else:
     # On adapte un peu les colonnes pour l’affichage
     tableau_affiche = []
     for h in data:
+        couleur = determiner_statut_couleur(h.get("date_retour"), h.get("date_retour_prevue"))
+        date_retour_affichee = f"{couleur} {h.get('date_retour') or h.get('date_retour_prevue') or '—'}"
+        
         tableau_affiche.append({
             "Titre": h.get("titre"),
             "Emprunteur": h.get("emprunteur"),
             "Date d'emprunt": h.get("date_emprunt"),
-            "Date de retour": h.get("date_retour") or "—",
+            "Date de retour / Prévue": date_retour_affichee,
             "Commentaire": h.get("commentaire") or ""
         })
 
