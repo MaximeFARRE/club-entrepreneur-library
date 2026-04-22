@@ -28,6 +28,21 @@ def get_dernier_emprunt(id_livre: int):
     conn.close()
     return dict(row) if row else None
 
+def get_emprunt_en_cours(id_livre: int):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT h.*, l.titre, l.proprietaire, l.proprietaire_email
+        FROM historique h
+        JOIN livres l ON l.id = h.id_livre
+        WHERE h.id_livre = ? AND h.date_retour IS NULL
+        ORDER BY h.date_emprunt DESC
+        LIMIT 1
+    """, (id_livre,))
+    row = cur.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
 def ajouter_emprunt(id_livre: int, emprunteur: str, emprunteur_email: str, date_emprunt: str, date_retour_prevue: str, commentaire: str):
     conn = get_connection()
     cur = conn.cursor()
