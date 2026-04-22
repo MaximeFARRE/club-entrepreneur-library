@@ -99,3 +99,35 @@ def get_emprunts_en_retard():
     # Trier par nombre de jours de retard (le plus long en premier)
     retards.sort(key=lambda x: x.get("jours_retard", 0), reverse=True)
     return retards
+
+def get_emprunt_actif_pour_livre(id_livre: int):
+    """Retourne l'emprunt en cours pour un livre donné, ou None s'il n'y en a pas."""
+    return historique_repository.get_emprunt_en_cours(id_livre)
+
+def determiner_statut_couleur(date_retour: str, date_retour_prevue: str) -> str:
+    """
+    Détermine la couleur du statut d'un emprunt.
+    - Vert (🟢) : si rendu, ou s'il reste plus de 3 jours.
+    - Orange (🟠) : si en cours et qu'il reste moins de 3 jours (inclus).
+    - Rouge (🔴) : si en retard.
+    """
+    if date_retour:
+        return "🟢" # Rendu
+        
+    if not date_retour_prevue:
+        return "🟢" # Pas de date prévue, par défaut OK
+        
+    maintenant = datetime.now()
+    try:
+        date_prevue = datetime.strptime(date_retour_prevue, "%Y-%m-%d %H:%M:%S")
+    except ValueError:
+        return "🟢"
+        
+    if maintenant > date_prevue:
+        return "🔴" # En retard
+        
+    jours_restants = (date_prevue - maintenant).days
+    if jours_restants <= 3:
+        return "🟠" # Bientôt à rendre
+        
+    return "🟢" # Reste plus de 3 jours
