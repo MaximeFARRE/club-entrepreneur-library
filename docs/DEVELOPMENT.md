@@ -18,3 +18,10 @@ The project uses SQLite and the Peewee ORM.
 
 ## Local Secrets
 For features like email notifications, do not hardcode credentials. Use Streamlit's secrets management by placing your configurations in `.streamlit/secrets.toml` (this file is git-ignored).
+
+## Neon PostgreSQL Setup
+To connect to a Neon database instead of local SQLite, add the following to your `.streamlit/secrets.toml`:
+
+```toml
+DATABASE_URL = "postgresql://user:password@ep-cool-pine-123456.eu-central-1.aws.neon.tech/dbname"
+```
