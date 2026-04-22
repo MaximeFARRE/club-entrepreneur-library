@@ -1,5 +1,6 @@
 import streamlit as st
 from src.services.livre_service import get_tous_les_livres as get_livres, get_livre, mettre_a_jour_livre, archiver_livre
+from src.services.emprunt_service import get_emprunt_actif_pour_livre, determiner_statut_couleur
 
 
 st.set_page_config(page_title="Gérer les livres",  page_icon="assets/logo_icone.png",
@@ -30,6 +31,19 @@ else:
 
         st.subheader("Modifier les informations du livre")
 
+        if livre.get("disponibilite") == "Indisponible":
+            emprunt = get_emprunt_actif_pour_livre(id_livre)
+            if emprunt:
+                couleur = determiner_statut_couleur(None, emprunt.get("date_retour_prevue"))
+                date_prevue = emprunt.get("date_retour_prevue", "Inconnue")
+                message = f"Livre actuellement emprunté par {emprunt.get('emprunteur')}. Date de retour prévue : {date_prevue}."
+                if couleur == "🟢":
+                    st.success(message)
+                elif couleur == "🟠":
+                    st.warning(f"⚠️ Bientôt à rendre : {message}")
+                elif couleur == "🔴":
+                    st.error(f"🚨 En retard : {message}")
+                    
         with st.form("form_edit_livre"):
             titre = st.text_input("Titre", value=livre.get("titre") or "")
             auteur = st.text_input("Auteur", value=livre.get("auteur") or "")
