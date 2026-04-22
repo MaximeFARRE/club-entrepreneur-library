@@ -1,6 +1,6 @@
-# 📚 Bibli Club Manager
+# 📚 Club Entrepreneur Library Manager
 
-> A lightweight, robust Streamlit web application to manage a book club's library and borrowing history.
+> The official library management system built by and for the members of the Club Entrepreneur student association at Pôle Léonard de Vinci.
 
 ![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
 ![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=flat&logo=Streamlit&logoColor=white)
@@ -9,7 +9,7 @@
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 ## Project Purpose
-Bibli Club Manager is designed to replace chaotic spreadsheets for small to medium reading groups. It centralizes the book catalog, tracks who borrowed what, enforces return dates, and automatically sends email reminders to late borrowers.
+Built as a custom tool for the Club Entrepreneur (Campus Léonard de Vinci), this application replaces chaotic spreadsheets to manage the association's private book collection. It centralizes the catalog, tracks member loans, enforces return dates, and automatically sends email reminders to late borrowers.
 
 ## Main Features
 - **Catalog Management**: View, search, and filter the book collection.
