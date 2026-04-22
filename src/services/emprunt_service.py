@@ -69,3 +69,8 @@ def process_retour(id_livre: int, commentaire: str = ""):
             )
         except Exception as e:
             print(f"Erreur envoi email emprunteur : {e}")
+
+
+def get_tout_historique():
+    return historique_repository.get_historique()
+
