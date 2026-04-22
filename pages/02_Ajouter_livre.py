@@ -1,9 +1,8 @@
 import streamlit as st
-from database import ajouter_livre
+from src.services.livre_service import ajouter_nouveau_livre
 
 st.set_page_config(page_title="Ajouter un livre",    page_icon="assets/logo_icone.png",
 )
-
 
 st.title("Ajouter un livre")
 st.write("Remplis les informations ci-dessous pour ajouter un livre à la bibliothèque du club.")
@@ -31,5 +30,5 @@ with st.form("ajout_livre_form"):
             if not proprietaire_email.endswith("@edu.devinci.fr"):
                  st.error("Merci d'utiliser ton email de l'école (@edu.devinci.fr).")
             else:
-                ajouter_livre(titre, auteur, categorie, proprietaire, proprietaire_email, resume, couverture)
+                ajouter_nouveau_livre(titre, auteur, categorie, proprietaire, proprietaire_email, resume, couverture)
                 st.success(f"Le livre **{titre}** a été ajouté avec succès.")

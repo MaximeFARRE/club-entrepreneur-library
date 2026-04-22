@@ -1,5 +1,5 @@
 import streamlit as st
-from database import get_historique
+from src.services.emprunt_service import get_tout_historique as get_historique
 
 st.set_page_config(page_title="Historique des emprunts", page_icon="assets/logo_icone.png",
 )

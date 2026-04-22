@@ -1,5 +1,7 @@
 import streamlit as st
-from database import init_db, get_livres, get_historique
+from src.db.database import init_db
+from src.services.livre_service import get_tous_les_livres
+from src.services.emprunt_service import get_tout_historique
 from pathlib import Path
 
 # Charger et afficher le logo
@@ -51,7 +53,7 @@ st.markdown("Bonne lecture à tous ! ")
 
 # --- Statistiques de la bibliothèque ---
 
-livres_rows = get_livres()
+livres_rows = get_tous_les_livres()
 livres = [dict(row) for row in livres_rows]
 
 total_livres = len(livres)
@@ -59,7 +61,7 @@ nb_disponibles = sum(1 for l in livres if l.get("disponibilite") == "Disponible"
 nb_empruntes = sum(1 for l in livres if l.get("disponibilite") == "Indisponible")
 nb_archives = sum(1 for l in livres if l.get("disponibilite") == "Archivé")
 
-historique_rows = get_historique()
+historique_rows = get_tout_historique()
 historique = [dict(r) for r in historique_rows]
 total_emprunts = len(historique)
 

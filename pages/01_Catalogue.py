@@ -1,11 +1,8 @@
 import streamlit as st
 import pandas as pd
 
-from database import get_livres, emprunter_livre
-from notifications import (
-    envoyer_mail_emprunt_proprietaire,
-    envoyer_mail_emprunt_emprunteur,
-)
+from src.services.livre_service import get_tous_les_livres
+from src.services.emprunt_service import process_emprunt
 
 st.set_page_config(page_title="Catalogue", layout="wide", page_icon="assets/logo_icone.png")
 
@@ -19,7 +16,7 @@ st.write(
 # -----------------------------
 # Récupération des données
 # -----------------------------
-rows = get_livres()
+rows = get_tous_les_livres()
 livres = [dict(r) for r in rows]
 
 if "selected_book_id" not in st.session_state:
@@ -226,45 +223,12 @@ else:
                 if not emprunteur or not emprunteur_email:
                     st.error("Merci de renseigner ton nom et ton email pour emprunter le livre.")
                 else:
-                    # Mise à jour de la base
-                    date_emprunt, date_retour_prevue = emprunter_livre(
-                        selected_id,
-                        emprunteur,
-                        emprunteur_email,
-                        commentaire,
-                    )
-
-                    st.success("Le livre a bien été emprunté. Tu as un mois pour le rendre.")
-
-                    # Envoi des emails
                     try:
-                        envoyer_mail_emprunt_proprietaire(
-                            proprietaire=proprietaire,
-                            proprietaire_email=(proprietaire_email if proprietaire_email != "Non renseigné" else ""),
-                            emprunteur=emprunteur,
-                            emprunteur_email=emprunteur_email,
-                            titre=titre,
-                            date_emprunt=date_emprunt,
-                            date_retour_prevue=date_retour_prevue,
-                        )
-                    except Exception as e:
-                        st.warning(f"L'emprunt est enregistré, mais l'email au propriétaire n'a pas pu être envoyé : {e}")
-
-                    try:
-                        envoyer_mail_emprunt_emprunteur(
-                            proprietaire=proprietaire,
-                            proprietaire_email=(proprietaire_email if proprietaire_email != "Non renseigné" else ""),
-                            emprunteur=emprunteur,
-                            emprunteur_email=emprunteur_email,
-                            titre=titre,
-                            date_emprunt=date_emprunt,
-                            date_retour_prevue=date_retour_prevue,
-                        )
-                    except Exception as e:
-                        st.warning(f"L'emprunt est enregistré, mais l'email de confirmation n'a pas pu être envoyé : {e}")
-
-                    # Rechargement de la page pour mettre à jour la dispo
-                    st.rerun()
+                        process_emprunt(selected_id, emprunteur, emprunteur_email, commentaire)
+                        st.success("Le livre a bien été emprunté. Tu as un mois pour le rendre.")
+                        st.rerun()
+                    except ValueError as e:
+                        st.error(str(e))
 
 # -----------------------------
 # Vue tableau "backup" du catalogue

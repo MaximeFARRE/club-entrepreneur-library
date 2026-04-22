@@ -1,5 +1,5 @@
 import streamlit as st
-from database import get_livres, get_livre, mettre_a_jour_livre, archiver_livre
+from src.services.livre_service import get_tous_les_livres as get_livres, get_livre, mettre_a_jour_livre, archiver_livre
 
 
 st.set_page_config(page_title="Gérer les livres",  page_icon="assets/logo_icone.png",
