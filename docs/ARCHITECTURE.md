@@ -1,6 +1,6 @@
 # Architecture Overview
 
-The application follows a pragmatic 3-tier architecture designed for Streamlit.
+The application follows a pragmatic 3-tier architecture designed for Streamlit, specifically tailored for the Club Entrepreneur (Pôle Léonard de Vinci) use case.
 
 ## 1. Presentation Layer (UI)
 - **Files**: `Accueil.py`, `pages/*.py`
