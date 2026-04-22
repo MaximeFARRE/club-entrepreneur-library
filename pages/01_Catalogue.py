@@ -26,7 +26,7 @@ if "selected_book_id" not in st.session_state:
 # Barre de recherche & filtres
 # -----------------------------
 with st.container():
-    col_search, col_cat, col_dispo = st.columns([2, 1, 1])
+    col_search, col_cat = st.columns([2, 1])
 
     with col_search:
         query = st.text_input(
@@ -43,12 +43,15 @@ with st.container():
             default=[]
         )
 
-    with col_dispo:
-        filtre_dispo = st.selectbox(
-            "Disponibilité",
-            options=["Tous", "Disponible", "Emprunté", "Archivé"],
-            index=0,
-        )
+    filtre_dispo = st.segmented_control(
+        "Filtres rapides",
+        options=["Tous", "Disponibles", "Empruntés", "Archivés"],
+        default="Tous",
+        selection_mode="single"
+    )
+    # Au cas où l'utilisateur décoche le bouton sélectionné
+    if not filtre_dispo:
+        filtre_dispo = "Tous"
 
 # -----------------------------
 # Filtrage des livres
@@ -72,11 +75,11 @@ for l in livres:
         continue
 
     # Filtre dispo
-    if filtre_dispo == "Disponible" and dispo != "Disponible":
+    if filtre_dispo == "Disponibles" and dispo != "Disponible":
         continue
-    if filtre_dispo == "Emprunté" and dispo != "Indisponible":
+    if filtre_dispo == "Empruntés" and dispo != "Indisponible":
         continue
-    if filtre_dispo == "Archivé" and dispo != "Archivé":
+    if filtre_dispo == "Archivés" and dispo != "Archivé":
         continue
 
     livres_filtres.append(l)
