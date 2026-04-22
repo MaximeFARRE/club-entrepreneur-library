@@ -42,3 +42,7 @@ urllib3==2.5.0
 watchdog==6.0.0
 websockets==15.0.1
 psycopg2-binary==2.9.9
+
+pytest==8.0.0
+pytest-mock==3.12.0
+
