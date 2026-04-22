@@ -1,7 +1,7 @@
 import streamlit as st
 from src.db.database import init_db
 from src.services.livre_service import get_tous_les_livres
-from src.services.emprunt_service import get_tout_historique
+from src.services.emprunt_service import get_tout_historique, get_emprunts_en_retard
 from pathlib import Path
 
 # Charger et afficher le logo
@@ -65,16 +65,19 @@ historique_rows = get_tout_historique()
 historique = [dict(r) for r in historique_rows]
 total_emprunts = len(historique)
 
+retards = get_emprunts_en_retard()
+nb_retards = len(retards)
+
 # Nombre de livres différents ayant déjà été empruntés
 livres_empruntes_distincts = len({h.get("id_livre") for h in historique}) if historique else 0
 
 st.subheader("Statistiques de la bibliothèque")
 
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
 
 with col1:
     st.metric("Livres au total", total_livres)
-    st.metric("Livres déjà empruntés (au moins une fois)", livres_empruntes_distincts)
+    st.metric("Déjà empruntés", livres_empruntes_distincts)
 
 with col2:
     st.metric("Disponibles", nb_disponibles)
@@ -82,7 +85,10 @@ with col2:
 
 with col3:
     st.metric("Livres archivés", nb_archives)
-    st.metric("Emprunts enregistrés", total_emprunts)
+    st.metric("Emprunts au total", total_emprunts)
+    
+with col4:
+    st.metric("Livres en retard", nb_retards, delta="-Attention" if nb_retards > 0 else "OK", delta_color="inverse")
 
 st.markdown("---")
 st.markdown("© 2025 Club Entrepreneurs - Tous droits réservés.")
