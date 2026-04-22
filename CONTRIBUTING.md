@@ -1,6 +1,6 @@
 # Contributing Guidelines
 
-We welcome contributions to the Bibli Club Manager!
+We welcome contributions to the Club Entrepreneur Library Manager from all Pôle Léonard de Vinci students!
 
 ## How to Contribute
 1. **Fork the repository** on GitHub.
